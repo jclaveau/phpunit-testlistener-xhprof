@@ -1,5 +1,5 @@
 {
-    "name": "phpunit/test-listener-xhprof",
+    "name": "jclaveau/phpunit-testlistener-xhprof",
     "description": "A TestListener for PHPUnit that uses XHProf for automated profiling of the tested code",
     "type": "library",
     "keywords": [
