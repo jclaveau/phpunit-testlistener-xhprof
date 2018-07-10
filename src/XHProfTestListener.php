@@ -69,6 +69,11 @@ class XHProfTestListener implements \PHPUnit_Framework_TestListener
     protected $suites = 0;
 
     /**
+     * @var bool
+     */
+    protected $xhprof_is_started = false;
+
+    /**
      * Constructor.
      *
      * @param array $options
@@ -163,19 +168,14 @@ class XHProfTestListener implements \PHPUnit_Framework_TestListener
      */
     public function startTest(\PHPUnit_Framework_Test $test)
     {
-        if (!isset($this->options['xhprofFlags'])) {
-            $flags = XHPROF_FLAGS_CPU + XHPROF_FLAGS_MEMORY;
-        } else {
-            $flags = 0;
+        $annotations = $test->getAnnotations();
+        // if (isset($annotations['class']['profile']))
+            // return;
 
-            foreach (explode(',', $this->options['xhprofFlags']) as $flag) {
-                $flags += constant($flag);
-            }
-        }
+        if (!isset($annotations['method']['profile']))
+            return;
 
-        xhprof_enable($flags, array(
-            'ignored_functions' => explode(',', $this->options['xhprofIgnore'])
-        ));
+        $this->startProfiling();
     }
 
     /**
@@ -186,12 +186,16 @@ class XHProfTestListener implements \PHPUnit_Framework_TestListener
      */
     public function endTest(\PHPUnit_Framework_Test $test, $time)
     {
-        $data         = xhprof_disable();
-        $runs         = new \XHProfRuns_Default;
-        $run          = $runs->save_run($data, $this->options['appNamespace']);
-        $test_name    = get_class($test) . '::' . $test->getName();
-        $this->runs[$test_name] = $this->options['xhprofWeb'] . '?run=' . $run .
-                                  '&source=' . $this->options['appNamespace'];
+        $annotations = $test->getAnnotations();
+
+        // if (isset($annotations['class']['profile']))
+            // return;
+
+        if (!isset($annotations['method']['profile']))
+            return;
+
+        $test_name = get_class($test) . '::' . $test->getName();
+        $this->endProfiling($test_name);
     }
 
     /**
@@ -223,4 +227,40 @@ class XHProfTestListener implements \PHPUnit_Framework_TestListener
             print "\n";
         }
     }
+
+    protected function startProfiling()
+    {
+        if (!isset($this->options['xhprofFlags'])) {
+            $flags = XHPROF_FLAGS_CPU + XHPROF_FLAGS_MEMORY;
+        } else {
+            $flags = 0;
+
+            foreach (explode(',', $this->options['xhprofFlags']) as $flag) {
+                $flags += constant($flag);
+            }
+        }
+
+        xhprof_enable($flags, array(
+            'ignored_functions' => explode(',', $this->options['xhprofIgnore'])
+        ));
+
+        $this->xhprof_is_started = true;
+    }
+
+    protected function endProfiling($name)
+    {
+        $name = str_replace('\\', '_', $name);
+
+        // $test_name    = get_class($test) . '::' . $test->getName();
+        $data         = xhprof_disable();
+        $runs         = new \XHProfRuns_Default;
+        $run          = $runs->save_run($data, $this->options['appNamespace'] . '_' . $name);
+        $this->runs[$name] = $this->options['xhprofWeb'] . '?run=' . $run
+                           . '&source=' . $this->options['appNamespace'] . '_' . $name
+                           ;
+
+        $this->xhprof_is_started = false;
+    }
+
+    /**/
 }
