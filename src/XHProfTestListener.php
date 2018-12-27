@@ -168,6 +168,9 @@ class XHProfTestListener implements \PHPUnit_Framework_TestListener
      */
     public function startTest(\PHPUnit_Framework_Test $test)
     {
+        if (!extension_loaded('xhprof'))
+            return;
+
         $annotations = $test->getAnnotations();
         // if (isset($annotations['class']['profile']))
             // return;
@@ -186,6 +189,9 @@ class XHProfTestListener implements \PHPUnit_Framework_TestListener
      */
     public function endTest(\PHPUnit_Framework_Test $test, $time)
     {
+        if (!extension_loaded('xhprof'))
+            return;
+
         $annotations = $test->getAnnotations();
 
         // if (isset($annotations['class']['profile']))
