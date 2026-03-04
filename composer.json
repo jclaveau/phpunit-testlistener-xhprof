@@ -24,8 +24,8 @@
         "issues": "https://github.com/phpunit/phpunit-testlistener-xhprof/issues"
     },
     "require": {
-        "php": ">=5.3.3",
-        "phpunit/phpunit": ">=4.0"
+        "php": "^7.1 || ^8.0",
+        "phpunit/phpunit": "^9.5"
     },
     "autoload": {
         "classmap": [
