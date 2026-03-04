@@ -10,6 +10,12 @@
 
 namespace PHPUnit\XHProfTestListener;
 
+use PHPUnit\Framework\Test;
+use PHPUnit\Framework\TestListener;
+use PHPUnit\Framework\TestSuite;
+use PHPUnit\Framework\AssertionFailedError;
+use PHPUnit\Framework\Warning;
+
 /**
  * A TestListener that integrates with XHProf.
  *
@@ -51,20 +57,20 @@ namespace PHPUnit\XHProfTestListener;
  * @link       http://www.phpunit.de/
  * @since      Class available since Release 1.0.0
  */
-class XHProfTestListener implements \PHPUnit_Framework_TestListener
+class XHProfTestListener implements TestListener
 {
     /**
      * @var array
      */
-    protected $runs = array();
+    protected $runs = [];
 
     /**
      * @var array
      */
-    protected $options = array();
+    protected $options = [];
 
     /**
-     * @var integer
+     * @var int
      */
     protected $suites = 0;
 
@@ -78,24 +84,24 @@ class XHProfTestListener implements \PHPUnit_Framework_TestListener
      *
      * @param array $options
      */
-    public function __construct(array $options = array())
+    public function __construct(array $options = [])
     {
         if (!isset($options['appNamespace'])) {
-            throw new InvalidArgumentException(
+            throw new \InvalidArgumentException(
               'The "appNamespace" option is not set.'
             );
         }
 
         if (!isset($options['xhprofLibFile']) ||
             !file_exists($options['xhprofLibFile'])) {
-            throw new InvalidArgumentException(
+            throw new \InvalidArgumentException(
               'The "xhprofLibFile" option is not set or the configured file does not exist'
             );
         }
 
         if (!isset($options['xhprofRunsFile']) ||
             !file_exists($options['xhprofRunsFile'])) {
-            throw new InvalidArgumentException(
+            throw new \InvalidArgumentException(
               'The "xhprofRunsFile" option is not set or the configured file does not exist'
             );
         }
@@ -108,72 +114,55 @@ class XHProfTestListener implements \PHPUnit_Framework_TestListener
 
     /**
      * An error occurred.
-     *
-     * @param \PHPUnit_Framework_Test $test
-     * @param \Exception              $e
-     * @param float                  $time
      */
-    public function addError(\PHPUnit_Framework_Test $test, \Exception $e, $time)
+    public function addError(Test $test, \Throwable $e, float $time): void
     {
     }
 
     /**
      * A failure occurred.
-     *
-     * @param \PHPUnit_Framework_Test                 $test
-     * @param \PHPUnit_Framework_AssertionFailedError $e
-     * @param float                                  $time
      */
-    public function addFailure(\PHPUnit_Framework_Test $test, \PHPUnit_Framework_AssertionFailedError $e, $time)
+    public function addFailure(Test $test, AssertionFailedError $e, float $time): void
     {
     }
 
     /**
      * Incomplete test.
-     *
-     * @param \PHPUnit_Framework_Test $test
-     * @param \Exception              $e
-     * @param float                  $time
      */
-    public function addIncompleteTest(\PHPUnit_Framework_Test $test, \Exception $e, $time)
+    public function addIncompleteTest(Test $test, \Throwable $e, float $time): void
     {
     }
 
     /**
      * Skipped test.
-     *
-     * @param \PHPUnit_Framework_Test $test
-     * @param \Exception              $e
-     * @param float                  $time
      */
-    public function addSkippedTest(\PHPUnit_Framework_Test $test, \Exception $e, $time)
+    public function addSkippedTest(Test $test, \Throwable $e, float $time): void
     {
     }
 
     /**
      * Risky test.
-     *
-     * @param \PHPUnit_Framework_Test $test
-     * @param \Exception              $e
-     * @param float                  $time
      */
-    public function addRiskyTest(\PHPUnit_Framework_Test $test, \Exception $e, $time)
+    public function addRiskyTest(Test $test, \Throwable $e, float $time): void
+    {
+    }
+
+    /**
+     * A warning occurred.
+     */
+    public function addWarning(Test $test, Warning $e, float $time): void
     {
     }
 
     /**
      * A test started.
-     *
-     * @param \PHPUnit_Framework_Test $test
      */
-    public function startTest(\PHPUnit_Framework_Test $test)
+    public function startTest(Test $test): void
     {
         if (!extension_loaded('xhprof'))
             return;
 
         $annotations = $test->getAnnotations();
-        // if (isset($annotations['class']['profile']))
-            // return;
 
         if (!isset($annotations['method']['profile']))
             return;
@@ -183,19 +172,13 @@ class XHProfTestListener implements \PHPUnit_Framework_TestListener
 
     /**
      * A test ended.
-     *
-     * @param \PHPUnit_Framework_Test $test
-     * @param float                  $time
      */
-    public function endTest(\PHPUnit_Framework_Test $test, $time)
+    public function endTest(Test $test, float $time): void
     {
         if (!extension_loaded('xhprof'))
             return;
 
         $annotations = $test->getAnnotations();
-
-        // if (isset($annotations['class']['profile']))
-            // return;
 
         if (!isset($annotations['method']['profile']))
             return;
@@ -206,20 +189,16 @@ class XHProfTestListener implements \PHPUnit_Framework_TestListener
 
     /**
      * A test suite started.
-     *
-     * @param \PHPUnit_Framework_TestSuite $suite
      */
-    public function startTestSuite(\PHPUnit_Framework_TestSuite $suite)
+    public function startTestSuite(TestSuite $suite): void
     {
         $this->suites++;
     }
 
     /**
      * A test suite ended.
-     *
-     * @param \PHPUnit_Framework_TestSuite $suite
      */
-    public function endTestSuite(\PHPUnit_Framework_TestSuite $suite)
+    public function endTestSuite(TestSuite $suite): void
     {
         $this->suites--;
 
@@ -234,7 +213,7 @@ class XHProfTestListener implements \PHPUnit_Framework_TestListener
         }
     }
 
-    protected function startProfiling()
+    protected function startProfiling(): void
     {
         if (!isset($this->options['xhprofFlags'])) {
             $flags = XHPROF_FLAGS_CPU + XHPROF_FLAGS_MEMORY;
@@ -246,27 +225,24 @@ class XHProfTestListener implements \PHPUnit_Framework_TestListener
             }
         }
 
-        xhprof_enable($flags, array(
+        xhprof_enable($flags, [
             'ignored_functions' => explode(',', $this->options['xhprofIgnore'])
-        ));
+        ]);
 
         $this->xhprof_is_started = true;
     }
 
-    protected function endProfiling($name)
+    protected function endProfiling($name): void
     {
         $name = str_replace('\\', '_', $name);
 
-        // $test_name    = get_class($test) . '::' . $test->getName();
-        $data         = xhprof_disable();
-        $runs         = new \XHProfRuns_Default;
-        $run          = $runs->save_run($data, $this->options['appNamespace'] . '_' . $name);
+        $data = xhprof_disable();
+        $runs = new \XHProfRuns_Default;
+        $run = $runs->save_run($data, $this->options['appNamespace'] . '_' . $name);
         $this->runs[$name] = $this->options['xhprofWeb'] . '?run=' . $run
                            . '&source=' . $this->options['appNamespace'] . '_' . $name
                            ;
 
         $this->xhprof_is_started = false;
     }
-
-    /**/
 }
